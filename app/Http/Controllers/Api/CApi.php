@@ -2,51 +2,74 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Models\MVersioning;
 use Illuminate\Http\Request;
-use App\Http\Controllers\Controller; // Pastikan controller ini di-extend
-use App\Models\Post; // Sesuaikan model yang digunakan
+use App\Http\Controllers\Controller;
+
+class CApi extends Controller
 {
     // Mengambil semua data
-    public function index()
+    function get_version()
     {
-        return Post::all();
-    }
+        $version = request()->input('version', '0'); // Default '0' jika tidak ada parameter
+        $subversion = request()->input('subversion', '0');
+        $sequence = request()->input('sequence_version', '0');
+        
+        // $data = MVersioning::orderBy('version', 'desc')        
+        // ->orderBy('subversion', 'desc')
+        // ->first();
+        
+        // // $version = $data->version . '.' . $data->subversion . '.' . $data->sequence_version;
+        // if($data->versi > $version){
+        //     $sequence = 0;
+		// 	$subversion = 1;
+		// 	$version = $data->versi;
+		// }
+		// if($data->subversion > $subversion){
+        //     $sequence = 0;
+		// 	$subversion = $data->subversion;
+		// }
 
-    // Menyimpan data baru
-    public function store(Request $request)
-    {
-        $request->validate([
-            'title' => 'required|string|max:255',
-            'content' => 'required|string',
+        
+        $dataVersi = MVersioning::where('version', '>=', $version)
+        ->where('subversion','>=', $subversion)
+        ->where('sequence_version', '>=', $sequence)
+        ->orderBy('version', 'asc')
+        ->orderBy('subversion', 'asc')
+        ->where("released", 1)
+        ->get();
+        
+        $requestedVersion = $version . '.' . $subversion . '.' . $sequence;
+        $lastVersion = $dataVersi->last();
+
+        // Jika ada data versi terakhir, format versinya, jika tidak maka kosong
+        $lastVersionString = $lastVersion ? $lastVersion->version . '.' . $lastVersion->subversion . '.' . $lastVersion->sequence_version : '0.0.0';
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Success',
+            'code' => 1,
+            'version' => $lastVersionString,
+            'data' => $dataVersi
         ]);
-
-        $post = Post::create($request->all());
-
-        return response()->json($post, 201);
     }
 
-    // Mengambil data berdasarkan id
-    public function show($id)
+    // Fungsi untuk download file dari public/source
+    function downloadFile()
     {
-        return Post::findOrFail($id);
-    }
+        // Tentukan path file di folder public/source
+        $filePath = public_path('source/releaseApp.zip');
 
-    // Mengupdate data
-    public function update(Request $request, $id)
-    {
-        $post = Post::findOrFail($id);
-        $post->update($request->all());
+        // Cek apakah file ada
+        if (!file_exists($filePath)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'File not found',
+                'code' => 0,
+            ], 404);
+        }
 
-        return response()->json($post, 200);
-    }
-
-    // Menghapus data
-    public function destroy($id)
-    {
-        $post = Post::findOrFail($id);
-        $post->delete();
-
-        return response()->json(null, 204);
+        // Mengembalikan file untuk di-download
+        return response()->download($filePath);
     }
 }
-

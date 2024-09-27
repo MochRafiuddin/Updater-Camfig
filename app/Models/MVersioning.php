@@ -5,7 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class MVersioning extends Authenticatable
+class MVersioning extends Model
 {
     protected $table = 'versioning';
     protected $primaryKey = 'id';
